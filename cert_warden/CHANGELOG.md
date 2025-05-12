@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.6
+
+- Fix certificate and key matching
+
 ## 0.0.5
 
 - Fix server url usage
