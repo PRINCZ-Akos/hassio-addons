@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.7
+
+- Fix looping
+
 ## 0.0.6
 
 - Fix certificate and key matching
