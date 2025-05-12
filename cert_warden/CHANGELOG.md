@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.5
+
+- Fix server url usage
+
 ## 0.0.4
 
 - Fix build
