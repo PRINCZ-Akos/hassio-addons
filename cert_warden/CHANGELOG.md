@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.4
+
+- Fix build
+
 ## 0.0.3
 
 - Fix image name

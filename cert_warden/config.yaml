@@ -1,5 +1,5 @@
 ---
-version: "0.0.3"
+version: "0.0.4"
 slug: cert_warden
 name: Cert Warden
 description: Fetches certificates from Cert Warden
