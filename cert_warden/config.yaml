@@ -1,5 +1,5 @@
 ---
-version: "0.0.1"
+version: "0.0.2"
 slug: cert_warden
 name: Cert Warden
 description: Fetches certificates from Cert Warden
@@ -23,6 +23,6 @@ options:
 schema:
   server: "url"
   cert_name: "str"
-  cert_apikey: "cert_apikey"
-  key_apikey: "key_apikey"
+  cert_apikey: "str"
+  key_apikey: "str"
 startup: once
