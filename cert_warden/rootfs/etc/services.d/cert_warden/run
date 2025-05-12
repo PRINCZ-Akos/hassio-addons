@@ -1,0 +1,121 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Start the add-on
+# s6-overlay docs: https://github.com/just-containers/s6-overlay
+# ==============================================================================
+
+declare server
+declare cert_name
+declare cert_apikey
+declare key_apikey
+
+server=$(bashio::config 'server')
+cert_name=$(bashio::config 'cert_name')
+cert_apikey=$(bashio::config 'cert_apikey')
+key_apikey=$(bashio::config 'key_apikey')
+
+cert_owner="root"
+cert_group="root"
+key_permissions="600"
+cert_permissions="644"
+temp_cert_dir="/data/tmp"
+temp_cert_path="$temp_cert_dir/$cert_name.crt"
+temp_key_path="$temp_cert_dir/$cert_name.key"
+cert_dir="/ssl"
+cert_path="$cert_dir/$cert_name.crt"
+key_path="$cert_dir/$cert_name.key"
+
+if [ -d "$temp_cert_dir" ]; then
+  rm -rf $temp_cert_dir
+fi
+
+# Exit on any error, treat unset variables as errors, and propagate errors in pipelines
+set -euo pipefail
+
+# Ensure the temporary directory is cleaned up on exit
+trap 'rm -rf "$temp_cert_dir"' EXIT
+
+mkdir "$temp_cert_dir"
+
+# Initialize a flag to track if the certificate aws updated
+cert_changed=false
+
+bashio::log.info "Processing certificate: $cert_name"
+
+# Fetch certificate and chain from Cert Warden
+bashio::log.info "Downloading certificate for $cert_name..."
+if curl -fL -o "$temp_cert_path" -H "X-API-Key: $cert_apikey" "https://$server/certwarden/api/v1/download/certificates/$cert_name"; then
+    bashio::log.info "Successfully downloaded certificate for $cert_name."
+else
+    bashio::log.error "Failed to download certificate for $cert_name."
+    exit 1
+fi
+
+# Fetch private key from Cert Warden
+bashio::log.info "Downloading private key for $cert_name..."
+if curl -fL -o "$temp_key_path" -H "X-API-Key: $key_apikey" "https://$server/certwarden/api/v1/download/privatekeys/$cert_name"; then
+    bashio::log.info "Successfully downloaded private key for $cert_name."
+else
+    bashio::log.error "Failed to download private key for $cert_name."
+    exit 1
+fi
+
+# Verify that the files are not empty
+if [ ! -s "$temp_cert_path" ] || [ ! -s "$temp_key_path" ]; then
+    bashio::log.error "One or more downloaded files for $cert_name are empty."
+    exit 1
+fi
+
+# Validate that the certificate and key match
+bashio::log.info "Validating that certificate and key match for $cert_name..."
+cert_pubkey_fingerprint=$(openssl x509 -in "temp_cert_path" -noout -pubkey \
+    | openssl pkey -pubin -outform DER 2>/dev/null \
+    | openssl dgst -sha256)
+
+key_pubkey_fingerprint=$(openssl pkey -in "$temp_key_path" -pubout -outform DER 2>/dev/null \
+    | openssl dgst -sha256)
+
+if [ "$cert_pubkey_fingerprint" != "$key_pubkey_fingerprint" ]; then
+    bashio::log.error "Certificate and key for $cert_name do not match!"
+    exit 1
+fi
+bashio::log.info "Certificate and key match for $cert_name."
+
+
+# Compare the new certificate with the existing one
+if [ -f "$cert_path" ]; then
+    bashio::log.info "Comparing new certificate with existing certificate for $cert_name..."
+    if ! cmp -s "$cert_path" "$temp_cert_path"; then
+        cert_changed=true
+        bashio::log.info "Certificate for $cert_name has changed."
+    else
+        bashio::log.info "Certificate for $cert_name is already up to date."
+    fi
+else
+    bashio::log.info "Existing certificate for $cert_name not found. It will be created."
+    cert_changed=true
+fi
+
+if [ "$cert_changed" = true ]; then
+    # If different, update the certificate and key
+    bashio::log.info "Updating certificate and key for $cert_name..."
+    if cp -f "$temp_cert_path" "$cert_path" && cp -f "$temp_key_path" "$key_path"; then
+        bashio::log.info "Successfully copied certificate and key for $cert_name to $cert_path and $key_path."
+    else
+        bashio::log.error "Failed to copy certificate and/or key for $cert_name."
+        exit 1
+    fi
+
+    # Set ownership and permissions
+    bashio::log.info "Setting ownership and permissions for $cert_path and $key_path..."
+    if chown "$cert_owner":"$cert_group" "$cert_path" "$key_path" && \
+        chmod "$cert_permissions" "$cert_path" && \
+        chmod "$key_permissions" "$key_path"; then
+        bashio::log.info "Successfully set ownership and permissions for $cert_name."
+    else
+        bashio::log.error "Failed to set ownership and/or permissions for $cert_name."
+        exit 1
+    fi
+
+    bashio::log.info "Certificate and key for $cert_name updated."
+fi

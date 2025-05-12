@@ -1,0 +1,28 @@
+---
+version: "0.0.1"
+slug: cert_warden
+name: Cert Warden
+description: Fetches certificates from Cert Warden
+url: "https://github.com/PRINCZ-Akos/hassio-addons/tree/main/cert_warden"
+arch:
+  - armhf
+  - armv7
+  - aarch64
+  - amd64
+  - i386
+boot: manual
+image: "ghcr.io/PRINCZ-Akos/{arch}-addon-cert_warden"
+init: false
+map:
+  - ssl:rw
+options:
+  server:
+  cert_name:
+  cert_apikey:
+  key_apikey:
+schema:
+  server: "url"
+  cert_name: "str"
+  cert_apikey: "cert_apikey"
+  key_apikey: "key_apikey"
+startup: once

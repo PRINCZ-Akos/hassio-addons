@@ -1,0 +1,14 @@
+---
+configuration:
+  server:
+    name: Server
+    description: The Cert Warden server to use.
+  cert_name:
+    name: Certificate Name
+    description: Name of the certificate to use (a private key of the same name will be used).
+  cert_apikey:
+    name: Certificate API Key
+    description: API key of the certificate.
+  key_apikey:
+    name: Private Key API Key
+    description: API key of the private key
