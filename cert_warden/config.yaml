@@ -1,5 +1,5 @@
 ---
-version: "0.0.2"
+version: "0.0.3"
 slug: cert_warden
 name: Cert Warden
 description: Fetches certificates from Cert Warden
@@ -11,7 +11,7 @@ arch:
   - amd64
   - i386
 boot: manual
-image: "ghcr.io/PRINCZ-Akos/{arch}-addon-cert_warden"
+image: "ghcr.io/princz-akos/{arch}-addon-cert_warden"
 init: false
 map:
   - ssl:rw
